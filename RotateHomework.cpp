@@ -46,7 +46,7 @@ public:
 		static float fFishAccumulatedDeg = 0.0f;
 
 		Vector3 vAxisY(0.0f, 1.0f, 0.0f);
-		
+
 		if (bProfessorRotating)
 		{
 
@@ -62,7 +62,7 @@ public:
 			fProfessorRotatingAmount += PROFESSOR_ANGULAR_SPEED * evt.timeSinceLastFrame;
 			fProfessorAccumulatedDeg += PROFESSOR_ANGULAR_SPEED  * evt.timeSinceLastFrame;
 			mProfessorNode->setOrientation(Quaternion(Degree(fProfessorAccumulatedDeg), vAxisY));
-			
+
 			mFishNode->rotate(vAxisY, -Degree((FISH_ANGULAR_SPEED)* evt.timeSinceLastFrame));
 			mFishNode->setPosition(FISH_RAD * cos(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI), -10.0f, FISH_RAD * sin(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI));
 			fFishAccumulatedDeg = (fFishAccumulatedDeg >= 360.0f) ? 0.0f : fFishAccumulatedDeg + (FISH_ANGULAR_SPEED + PROFESSOR_ANGULAR_SPEED) *evt.timeSinceLastFrame;
@@ -79,7 +79,7 @@ public:
 		mFishNode->rotate(vAxisY, -Degree(FISH_ANGULAR_SPEED * evt.timeSinceLastFrame));
 		mFishNode->setPosition(FISH_RAD * cos(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI), -10.0f, FISH_RAD * sin(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI));
 		fFishAccumulatedDeg = (fFishAccumulatedDeg >= 360.0f) ? 0.0f : fFishAccumulatedDeg + (FISH_ANGULAR_SPEED * evt.timeSinceLastFrame);
-		
+
 		return true;
 	}
 
@@ -245,7 +245,7 @@ extern "C" {
 		}
 
 		return 0;
-		}
+	}
 
 #ifdef __cplusplus
 }
