@@ -6,9 +6,6 @@
 #include <Ogre.h>
 #include <OIS/OIS.h>
 
-#define		FISH_RAD	50.0f
-#define		FISH_ANGULAR_SPEED			200.0f
-#define		PROFESSOR_ANGULAR_SPEED		80.0f
 
 using namespace Ogre;
 
@@ -28,20 +25,24 @@ public:
 class MainListener : public FrameListener {
 	OIS::Keyboard *mKeyboard;
 	Root* mRoot;
-	SceneNode *mProfessorNode, *mFishNode;
+	SceneNode *mProfessorNode, *mFishRotateCenterNode;
 
 public:
 	MainListener(Root* root, OIS::Keyboard *keyboard) : mKeyboard(keyboard), mRoot(root)
 	{
 		mProfessorNode = mRoot->getSceneManager("main")->getSceneNode("Professor");
-		mFishNode = mRoot->getSceneManager("main")->getSceneNode("Fish");
+		mFishRotateCenterNode = mRoot->getSceneManager("main")->getSceneNode("FishRotateCenter");
 	}
 
 	bool frameStarted(const FrameEvent &evt)
 	{
+#define		FISH_ANGULAR_SPEED			200.0f
+#define		PROFESSOR_ANGULAR_SPEED		80.0f
+#define		PROFESSOR_MAX_ZPOS			250.0f
+#define		PROFESSOR_MIN_ZPOS			-250.0f
+
 		static float fProfessorSpeed = 100.0f;
 		static bool bProfessorRotating = false;
-		static float fProfessorRotatingAmount = 0.0f;
 		static float fProfessorAccumulatedDeg = 0.0f;
 		static float fFishAccumulatedDeg = 0.0f;
 
@@ -49,37 +50,32 @@ public:
 
 		if (bProfessorRotating)
 		{
+			float thisFrameRotatingDegree = PROFESSOR_ANGULAR_SPEED  * evt.timeSinceLastFrame;
+			fProfessorAccumulatedDeg += thisFrameRotatingDegree;
+			mProfessorNode->rotate(vAxisY, Degree(thisFrameRotatingDegree));
 
-			if (fProfessorRotatingAmount >= 180.0f)
+			if (fProfessorAccumulatedDeg >= 180.0f)
 			{
-				fProfessorRotatingAmount = 0.0f;
 				bProfessorRotating = false;
-				return true;
+				fProfessorAccumulatedDeg = 0.0f;
 			}
-
-			if (360.0f <= fProfessorAccumulatedDeg)	fProfessorAccumulatedDeg = 0.0f;
-
-			fProfessorRotatingAmount += PROFESSOR_ANGULAR_SPEED * evt.timeSinceLastFrame;
-			fProfessorAccumulatedDeg += PROFESSOR_ANGULAR_SPEED  * evt.timeSinceLastFrame;
-			mProfessorNode->setOrientation(Quaternion(Degree(fProfessorAccumulatedDeg), vAxisY));
-
-			mFishNode->rotate(vAxisY, -Degree((FISH_ANGULAR_SPEED)* evt.timeSinceLastFrame));
-			mFishNode->setPosition(FISH_RAD * cos(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI), -10.0f, FISH_RAD * sin(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI));
-			fFishAccumulatedDeg = (fFishAccumulatedDeg >= 360.0f) ? 0.0f : fFishAccumulatedDeg + (FISH_ANGULAR_SPEED + PROFESSOR_ANGULAR_SPEED) *evt.timeSinceLastFrame;
-			return true;
 		}
-		else if (mProfessorNode->getPosition().z < -250.0f || 250.0f < mProfessorNode->getPosition().z)
+		else  // false == bProfessorRotating
 		{
-			fProfessorSpeed *= -1.0f;
-			bProfessorRotating = true;
+			mProfessorNode->translate(0.0f, 0.0f, fProfessorSpeed * evt.timeSinceLastFrame);
+
+			if (mProfessorNode->getPosition().z < PROFESSOR_MIN_ZPOS || PROFESSOR_MAX_ZPOS < mProfessorNode->getPosition().z)
+			{
+				Vector3 vProfessorPosition = mProfessorNode->getPosition();
+				vProfessorPosition.z = vProfessorPosition.z > 0 ? PROFESSOR_MAX_ZPOS : PROFESSOR_MIN_ZPOS;
+				mProfessorNode->setPosition(vProfessorPosition);
+
+				fProfessorSpeed *= -1.0f;
+				bProfessorRotating = true;
+			}
 		}
 
-		mProfessorNode->translate(0.0f, 0.0f, fProfessorSpeed * evt.timeSinceLastFrame);
-
-		mFishNode->rotate(vAxisY, -Degree(FISH_ANGULAR_SPEED * evt.timeSinceLastFrame));
-		mFishNode->setPosition(FISH_RAD * cos(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI), -10.0f, FISH_RAD * sin(fFishAccumulatedDeg / 360.0f * Ogre::Math::TWO_PI));
-		fFishAccumulatedDeg = (fFishAccumulatedDeg >= 360.0f) ? 0.0f : fFishAccumulatedDeg + (FISH_ANGULAR_SPEED * evt.timeSinceLastFrame);
-
+		mFishRotateCenterNode->rotate(vAxisY, -Degree(FISH_ANGULAR_SPEED * evt.timeSinceLastFrame));
 		return true;
 	}
 
@@ -164,15 +160,15 @@ public:
 		Entity* entity1 = mSceneMgr->createEntity("Professor", "DustinBody.mesh");
 		SceneNode* node1 = mSceneMgr->getRootSceneNode()->createChildSceneNode("Professor", Vector3(0.0f, 0.0f, 0.0f));
 		node1->attachObject(entity1);
-
-		Entity* entity2 = mSceneMgr->createEntity("Fish", "fish.mesh");
-		SceneNode* node2 = node1->createChildSceneNode("Fish", Vector3(100.0f, 0.0f, 0.0f));
-		node2->attachObject(entity2);
-		node2->setScale(5.0f, 5.0f, 5.0f);
-		node2->setPosition(node1->getPosition());
+		
+		SceneNode* node2 = node1->createChildSceneNode("FishRotateCenter", Vector3::ZERO);
 		node2->setInheritOrientation(false);
-		node2->rotate(Vector3(0.0f, 1.0f, 0.0f), Degree(90.0f));
 
+		Entity* entity3 = mSceneMgr->createEntity("Fish", "fish.mesh");
+		SceneNode* node3 = node2->createChildSceneNode("Fish", Vector3(0.0f, 0.0f, 100.0f));
+		node3->attachObject(entity3);
+		node3->setScale(5.0f, 5.0f, 5.0f);
+		
 		mESCListener = new ESCListener(mKeyboard);
 		mRoot->addFrameListener(mESCListener);
 
